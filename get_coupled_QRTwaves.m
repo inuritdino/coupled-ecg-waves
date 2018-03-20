@@ -81,12 +81,12 @@ function [qi, ri, ti, te] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
       k = k + 1;
     else%% Irregular beat... Move R-, T- and Q-pointers forward
       %% depending on conditions, until the coupled pair is found
-      while(
-	  ( (i < N) && (j <= M) && (m <= P) && (n <= O)) &&
+      while(...
+	  ( (i < N) && (j <= M) && (m <= P) && (n <= O)) && ...
 	  ( ~((tqi(j) <= tri(i) + bet*(tri(inext)-tri(i))) && ...
 	      (tqi(j) >= tri(i) - al*(tri(i)-tri(iprev))) && ...
 	      (tti(m) > tri(i) && tti(m) < tri(inext)) && ...
-              (tte(n) > tri(i) && tte(n) < tri(inext)) ) )
+              (tte(n) > tri(i) && tte(n) < tri(inext)) ) )...
 	)
 	%% Missed Q-wave ==> skip the R-wave (the beat)
 	if( tqi(j) > tri(i) + bet*(tri(inext)-tri(i)) )
@@ -122,7 +122,7 @@ function [qi, ri, ti, te] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
 	if( tte(n) <= tri(i) )
 	  n = n + 1;
 	end
-	## fprintf("%f,%f,%f,%f\n",tri(i),tqi(j),tti(m),tte(n));
+	%% fprintf("%f,%f,%f,%f\n",tri(i),tqi(j),tti(m),tte(n));
       end
       %% If aligned all waves and not reached the end of signal, store
       %% the index of the aligned waves
@@ -193,29 +193,29 @@ function [qi, ri, ti, te] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
 
 
   %% VER 2
-  ## %% Remove unordered Q and R in the beginning
-  ## while (ri(1) < qi(1))
-  ##   ri = ri(2:end);
-  ## end
-  ## %% Form the difference
-  ## maxlen = min(length(qi),length(ri));
-  ## ri = ri(1:maxlen);
-  ## qi = qi(1:maxlen);
-  ## D = ri - qi;
-
-  ## %% Form the diff of D
-  ## Dd = diff(D);
-
-  ## %% Ignore places where Dd is restored in consecutive positions:
-  ## %% e.g. Dd = 0 0 -n n 0 0 these shifts indicate detection errors,
-  ## %% not missing annotations
-  ## Ipos = find(Dd > 0);
-  ## Ineg = find(Dd < 0);
-  ## J = find(diff(abs(Dd)) == 0);
-  ## J = [J J+1];%% we need two consecutive numbers to ignore
-  ## %% Drop unpaired R- and Q-waves
-  ## ri(setdiff(Ineg,J)) = [];
-  ## qi(setdiff(Ipos,J)) = [];
+  %% %% Remove unordered Q and R in the beginning
+  %% while (ri(1) < qi(1))
+  %%   ri = ri(2:end);
+  %% end
+  %% %% Form the difference
+  %% maxlen = min(length(qi),length(ri));
+  %% ri = ri(1:maxlen);
+  %% qi = qi(1:maxlen);
+  %% D = ri - qi;
+  %%
+  %% %% Form the diff of D
+  %% Dd = diff(D);
+  %%
+  %% %% Ignore places where Dd is restored in consecutive positions:
+  %% %% e.g. Dd = 0 0 -n n 0 0 these shifts indicate detection errors,
+  %% %% not missing annotations
+  %% Ipos = find(Dd > 0);
+  %% Ineg = find(Dd < 0);
+  %% J = find(diff(abs(Dd)) == 0);
+  %% J = [J J+1];%% we need two consecutive numbers to ignore
+  %% %% Drop unpaired R- and Q-waves
+  %% ri(setdiff(Ineg,J)) = [];
+  %% qi(setdiff(Ipos,J)) = [];
 
   
 end
