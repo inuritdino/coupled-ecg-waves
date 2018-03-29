@@ -66,8 +66,8 @@ function [qi, ri, ti, te, ii] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
   %% Main loop until we reach the end of the signal
   while((i <= N) && (j < M) && (m < P) && (n < O))
     %% debug
-    ## if k > 5
-    ##   return;
+    %% if k > 5
+    %%   return;
     %% end
     %% Small conditioning on the 1st and last beats
     if (i == 1)
@@ -81,22 +81,13 @@ function [qi, ri, ti, te, ii] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
       inext = i+1;
     end
     %% Regular beat...
-    %% if( ( tqi(j) <= tri(i) + bet*(abs(tri(inext)-tri(i))) ) && ...
-    %% 	( tqi(j) >= tri(i) -  al*(abs(tri(i)-tri(iprev))) )  && ...
-    %% 	( tqi(j+1) <= tri(i) + bet*(abs(tri(inext)-tri(i))) ) && ...
-    %% 	( tqi(j+1) >= tri(i) -  al*(abs(tri(i)-tri(iprev))) )  && ...
-    %%     ((tti(m) > tri(i)) && (tti(m) < tri(inext))) && ...
-    %%     ((tti(m+1) > tri(i)) && (tti(m+1) < tri(inext))) && ...
-    %%     ((tte(n) > tri(i)) && (tte(n) < tri(inext))) && ...
-    %% 	((tte(n+1) > tri(i)) && (tte(n+1) < tri(inext))) )
     if( ( tqi(j) <= tri(i) + bet*(abs(tri(inext)-tri(i))) ) && ...
-	( tqi(j) >= tri(i) -  al*(abs(tri(i)-tri(iprev))) )  && ...
-        ((tti(m) > tri(i)) && (tti(m) < tri(inext))) && ...
+    	( tqi(j) >= tri(i) -  al*(abs(tri(i)-tri(iprev))) )  && ...
+    	((tti(m) > tri(i)) && (tti(m) < tri(inext))) && ...
         ((tte(n) > tri(i)) && (tte(n) < tri(inext))) )
       qidx(k) = j;
       ridx(k) = i;
       tidx(k) = m;
-      %% fprintf("Tp: %.0f\n",tti(m));
       tedx(k) = n;
       if ~continuous_flag, continuous_flag = true; end
       %% fprintf("Regular beat\n");
@@ -106,6 +97,17 @@ function [qi, ri, ti, te, ii] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
       end
       irregular = false;
       k = k + 1;
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      %% The following is for the continuous segments
+      %% Find 2+ waves determined for the same heart beat
+      %% (practically, for the same R-wave, assuming R-wave is always
+      %% annotated once a beat)
+      %% 2+ Q-waves
+      ## while ( ( tqi(j+1) <= tri(i) + bet*(abs(tri(inext)-tri(i))) ) && ...
+      ## 	      ( tqi(j+1) >= tri(i) -  al*(abs(tri(i)-tri(iprev))) ) )
+      ## 	j = j + 1;
+      ## end
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     else%% Irregular beat...
       %% fprintf("Irreg: Qi%.0f,Ri%.0f,Tpi%.0f,Tei%.0f,R(i+1)%.0f\n",tqi(j),tri(i),tti(m),tte(n),tri(i+1));
       %% fprintf("\tQi <= Ri+bet*(...): %.0f <= %.0f\n",tqi(j),tri(i)+bet*(abs(tri(inext)-tri(i))));
@@ -121,11 +123,11 @@ function [qi, ri, ti, te, ii] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
       end
       %% Designate the end of continuous segment, i.e. interruption
       %% point
-      if continuous_flag
-	%% fprintf("%.0f continuous stop\n",tri(ri(ridx(k-1))));
-	iidx(p) = k-1; p = p + 1;
-	continuous_flag = false;
-      end
+      ## if continuous_flag
+      ## 	%% fprintf("%.0f continuous stop\n",tri(ri(ridx(k-1))));
+      ## 	iidx(p) = k-1; p = p + 1;
+      ## 	continuous_flag = false;
+      ## end
       %%Move R-, T- and Q-pointers forward depending on conditions,
       %%until the coupled waves are found
       while( ...
@@ -143,6 +145,8 @@ function [qi, ri, ti, te, ii] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
 	end
 	%% Missed R-wave ==> move Q-pointer forward
 	if( tqi(j) < tri(i) -  al*(tri(i)-tri(iprev)) )
+	  %% Could be a double Q-wave (error on ecgpuwave side)
+	  
 	  j = j + 1;
 	end
 	%% Missed T-wave ==> skip the R-wave (the heartbeat)
@@ -163,10 +167,17 @@ function [qi, ri, ti, te, ii] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
 	end
 	%% Missed R-wave ==> move T-peak pointer forward
 	if( tti(m) <= tri(i) )
+	  %% Double T-wave??
+	  if( (tti(m-1) > tri(i-1)) && (tti(m) > tri(i-1)) )
+	    %% Take action as to not interrupt a continuous region
+	    %%...
+	  end
 	  m = m + 1;
 	end
 	%% Missed R-wave ==> move T-end pointer forward
 	if( tte(n) <= tri(i) )
+	  %% Double T-wave??
+	  
 	  n = n + 1;
 	end
       end
