@@ -1,4 +1,4 @@
-function [qi, ri, ti, te, ii] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
+function [qi, ri, ti, te] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
   %% Remove uncoupled Q-, R-, and T-waves from WFDB annotations.
   %%  [qi, ri, ti, te] = GET_COUPLED_WAVES(ann, qi, ri, ti, te, sig,
   %%                                       Fs, tm)
@@ -45,7 +45,6 @@ function [qi, ri, ti, te, ii] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
   m = 1;% T-peak pointer
   n = 1;% T-end pointer
   k = 1;% coupled counter
-  p = 1;% interruption counter
   print_count = 1;
   %% Global upper limits for pointers
   N = length(ri);
@@ -57,75 +56,27 @@ function [qi, ri, ti, te, ii] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
   ridx = zeros(1,length(ri));
   tidx = zeros(1,length(ti));
   tedx = zeros(1,length(te));
-  %% Continuous segment flag
-  continuous_flag = false;
-  %% Interruption point indices
-  iidx = zeros(1,length(ri));
-  %% Irregular beat flag
-  irregular = false;
   %% Main loop until we reach the end of the signal
-  while((i <= N) && (j <= M) && (m <= P) && (n <= O))
-    %% debug
-    %% if k > 5
-    %%   return;
-    %% end
+  while((i < N) && (j <= M) && (m <= P) && (n <= O))
     %% Small conditioning on the 1st and last beats
     if (i == 1)
       iprev = i+1;
       inext = i+1;
-    elseif (i == N)
-      iprev = i-1;
-      inext = i-1;
     else
       iprev = i-1;
       inext = i+1;
     end
     %% Regular beat...
-    %% if( ( tqi(j) <= tri(i) + bet*(abs(tri(inext)-tri(i))) ) && ...
-    %% 	( tqi(j) >= tri(i) -  al*(abs(tri(i)-tri(iprev))) )  && ...
-    %% 	( tqi(j+1) <= tri(i) + bet*(abs(tri(inext)-tri(i))) ) && ...
-    %% 	( tqi(j+1) >= tri(i) -  al*(abs(tri(i)-tri(iprev))) )  && ...
-    %%     ((tti(m) > tri(i)) && (tti(m) < tri(inext))) && ...
-    %%     ((tti(m+1) > tri(i)) && (tti(m+1) < tri(inext))) && ...
-    %%     ((tte(n) > tri(i)) && (tte(n) < tri(inext))) && ...
-    %% 	((tte(n+1) > tri(i)) && (tte(n+1) < tri(inext))) )
     if( ( tqi(j) <= tri(i) + bet*(abs(tri(inext)-tri(i))) ) && ...
 	( tqi(j) >= tri(i) -  al*(abs(tri(i)-tri(iprev))) )  && ...
-        ((tti(m) > tri(i)) && (tti(m) < tri(inext))) && ...
-        ((tte(n) > tri(i)) && (tte(n) < tri(inext))) )
+        ( (tti(m) > tri(i)) && (tti(m) < tri(inext)) ) && ...
+        ( (tte(n) > tri(i)) && (tte(n) < tri(inext)) ) )
       qidx(k) = j;
       ridx(k) = i;
       tidx(k) = m;
-      %% fprintf("Tp: %.0f\n",tti(m));
       tedx(k) = n;
-      if ~continuous_flag, continuous_flag = true; end
-      %% fprintf("Regular beat\n");
-      if irregular
-	%% fprintf("Reg: Qi%.0f,Ri%.0f,Tpi%.0f,Tei%.0f,R(i+1)%.0f\n",tri(i),...
-	%% 	tqi(j),tti(m),tte(n),tri(i+1));
-      end
-      irregular = false;
       k = k + 1;
     else%% Irregular beat...
-      %% fprintf("Irreg: Qi%.0f,Ri%.0f,Tpi%.0f,Tei%.0f,R(i+1)%.0f\n",tqi(j),tri(i),tti(m),tte(n),tri(i+1));
-      %% fprintf("\tQi <= Ri+bet*(...): %.0f <= %.0f\n",tqi(j),tri(i)+bet*(abs(tri(inext)-tri(i))));
-      %% fprintf("\tQi >= Ri-al*(...): %.0f >= %.0f\n",tqi(j),tri(i)-al*(abs(tri(i)-tri(iprev))));
-      %% fprintf("\tTpi > Ri & Tpi < R(i+1): %.0f > %.0f & %.0f < %.0f\n",tti(m),tri(i),tti(m),tri(inext));
-      %% fprintf("\tTei > Ri & Tei < R(i+1): %.0f > %.0f & %.0f < %.0f\n",tte(n),tri(i),tte(n),tri(inext));
-      if irregular
-	%% fprintf("Warning: two irregular beats\n");
-	%% return;
-      end
-      if ~irregular
-	irregular = true;
-      end
-      %% Designate the end of continuous segment, i.e. interruption
-      %% point
-      if continuous_flag
-	%% fprintf("%.0f continuous stop\n",tri(ri(ridx(k-1))));
-	iidx(p) = k-1; p = p + 1;
-	continuous_flag = false;
-      end
       %%Move R-, T- and Q-pointers forward depending on conditions,
       %%until the coupled waves are found
       while( ...
@@ -177,7 +128,6 @@ function [qi, ri, ti, te, ii] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
 	ridx(k) = i;
 	tidx(k) = m;
 	tedx(k) = n;
-	if ~continuous_flag, continuous_flag = true; end
 	k = k + 1;
       end
     end
@@ -198,13 +148,11 @@ function [qi, ri, ti, te, ii] = get_coupled_QRTwaves(ann,qi,ri,ti,te,sig,Fs,tm)
   ridx = ridx(ridx ~= 0);
   tidx = tidx(tidx ~= 0);
   tedx = tedx(tedx ~= 0);
-  iidx = iidx(iidx ~= 0);
   %% Update the wave indices
   qi = qi(qidx);
   ri = ri(ridx);
   ti = ti(tidx);
   te = te(tedx);
-  ii = ri(iidx);% interruption points
 
   %% Some debugging
   if debug
