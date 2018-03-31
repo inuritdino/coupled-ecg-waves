@@ -1,15 +1,21 @@
-function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te)
-  %% Remove uncoupled Q-, R-, and T-waves from WFDB annotations. 
+function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,varargin)
+  %% Remove uncoupled Q-, R-, and T-waves from WFDB annotations.
+  %%
   %% USAGE:
-  %% [qi, ri, ti, te, ii, nuri] = GET_COUPLED_WAVES(ann, fs, qi, ri,
-  %% ti, te)
+  %%
+  %%    [qi, ri, ti, te, ii, nuri] =
+  %%         GET_COUPLED_QRTWAVES(ann, fs, qi, ri, ti, te, varargin)
+  %%
   %% INPUT:
-  %% ann - annotation sample number
-  %% fs - sampling frequency of the signal
-  %% qi - indices of Q-waves (e.g. as qi = find((ant == '(') & (num == %% 1));)
-  %% ri - indices of R-waves (e.g. as ri = find(ant == 'N');)
-  %% ti - indices of T-wave peaks (e.g. as ti = find(ant == 't');)
-  %% te - indices of T-wave ends (e.g. as te = find((ant == ')') & (num == 2));)
+  %%
+  %% ann -- annotation sample number
+  %% fs -- sampling frequency of the signal
+  %% qi -- indices of Q-waves (e.g. as qi = find((ant == '(') & (num == %% 1));)
+  %% ri -- indices of R-waves (e.g. as ri = find(ant == 'N');)
+  %% ti -- indices of T-wave peaks (e.g. as ti = find(ant == 't');)
+  %% te -- indices of T-wave ends (e.g. as te = find((ant == ')') & (num == 2));)
+  %% varargin -- see below.
+  %%
   %% NOTE: ann, ant and num are assumed to be corresponding outputs of
   %% WFDB's RDANN as in [ann,ant,ast,chn,num,com] = rdann(...);
   %%
@@ -17,8 +23,23 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te)
   %% corresponding to each other (coupled/synchronised). Additionally,
   %% the interruption point indices are returned (ii). (ii) are the
   %% indices of the R-waves where the continuous segment interruptions
-  %% occur. (nuri) is the number of hear beats that are in the
-  %% interruption regions (i.e. (nuri-1) R-waves).
+  %% occur (the last R of the continuous region). (nuri) is the number 
+  %% of hear beats that are in the interruption regions (i.e. (nuri-1) 
+  %% R-waves).
+  %%
+  %% NOTE: the interruption points are determined accounting for
+  %% double Q/T-waves, that is such annotations that show 2 or more
+  %% Q/T-waves for the single R-wave (annotation problem). Namely, no
+  %% interruption occur if the double wave is detected. The double
+  %% waves are detected by using RR intervals subject to
+  %% thresholding. The thresholds are specified by the VARARGIN:
+  %%
+  %% VARARGIN:
+  %%
+  %% get_coupled_QRTwaves(...,'RRlow',Value,...) -- the lower boundary
+  %% for RR intervals is set to Value (default: 0.3 sec).
+  %% get_coupled_QRTwaves(...,'RRup',Value,...) -- the upper boundary
+  %% for RR intervals is set to Value (default: 1.5 sec).
     
   more off; %% for printing the progress...
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -34,6 +55,19 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te)
   %% Thresholds for RR checks
   RR_low_trsh = 0.3;
   RR_up_trsh = 1.5;
+  vi = 1;
+  while( vi <= length(varargin))
+    if( strcmpi('RRlow',varargin{vi}) )
+      RR_low_trsh = varargin{vi+1};
+      vi = vi + 1;
+    elseif( strcmpi('RRup',varargin{vi}) )
+      RR_up_trsh = varargin{vi+1};
+      vi = vi + 1;
+    else
+      fprintf("Warning: VARARGIN argument is unknown.\n");
+    end
+    vi = vi + 1;
+  end
   %% Pointers to be conditionally moved
   i = 1;% R pointer
   j = 1;% Q pointer
@@ -161,7 +195,6 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te)
 	  nuri(p) = i - ridx(k - 2);
 	  p = p + 1;
 	end
-	## double_wave = false;% reset to default
       end
     end
     %% Move all indices forward
