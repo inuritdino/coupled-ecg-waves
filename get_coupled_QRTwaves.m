@@ -24,13 +24,13 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   %% the interruption point indices are returned (ii). (ii) are the
   %% indices of the R-waves where the continuous segment interruptions
   %% occur (the last R of the continuous region). (nuri) is the number 
-  %% of hear beats that are in the interruption regions (i.e. (nuri-1) 
+  %% of heart beats that are in the interruption regions (i.e. (nuri-1) 
   %% R-waves).
   %%
   %% NOTE: the interruption points are determined accounting for
   %% double Q/T-waves, that is such annotations that show 2 or more
   %% Q/T-waves for the single R-wave (annotation problem). Namely, no
-  %% interruption occur if the double wave is detected. The double
+  %% interruption occurs if the double wave is detected. The double
   %% waves are detected by using RR intervals subject to
   %% thresholding. The thresholds are specified by the VARARGIN:
   %%
@@ -38,8 +38,17 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   %%
   %% get_coupled_QRTwaves(...,'RRlow',Value,...) -- the lower boundary
   %% for RR intervals is set to Value (default: 0.3 sec).
+  %%
   %% get_coupled_QRTwaves(...,'RRup',Value,...) -- the upper boundary
   %% for RR intervals is set to Value (default: 1.5 sec).
+  %%
+  %% Other VARARGIN options:
+  %%
+  %% ...,'MinInterruptBeats',Value,... -- min number of the
+  %%     interruption segment beats considered the interruption
+  %%     (default: 1)
+  %%
+  %%
     
   more off; %% for printing the progress...
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -49,12 +58,15 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   tti = double(ann(ti))./fs;
   tte = double(ann(te))./fs;
 
-  %% Thresholds for Q-waves
+  %% Thresholds for Q-waves alignment to R
   al = 0.3;
   bet = 0.01;
   %% Thresholds for RR checks
   RR_low_trsh = 0.3;
   RR_up_trsh = 1.5;
+  %% Min number of the interruption region beats to be considered as
+  %% the interruption
+  min_interrupt_beats = 1;
   vi = 1;
   while( vi <= length(varargin))
     if( strcmpi('RRlow',varargin{vi}) )
@@ -62,6 +74,9 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
       vi = vi + 1;
     elseif( strcmpi('RRup',varargin{vi}) )
       RR_up_trsh = varargin{vi+1};
+      vi = vi + 1;
+    elseif( strcmpi('MinInterruptBeats',varargin{vi}) )
+      min_interrupt_beats = varargin{vi+1};
       vi = vi + 1;
     else
       fprintf("Warning: VARARGIN argument is unknown.\n");
@@ -189,11 +204,14 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
 	tidx(k) = m;
 	tedx(k) = n;
 	k = k + 1;
+	%% Get the interruption point
 	if ~double_wave & continuous
-	  continuous = false;
-	  iidx(p) = ridx(k - 2);% last regular/continuous beat
-	  nuri(p) = i - ridx(k - 2);
-	  p = p + 1;
+	  if( (i - ridx(k-2)) >= min_interrupt_beats )
+	    continuous = false;
+	    iidx(p) = ridx(k - 2);% last regular/continuous beat
+	    nuri(p) = i - ridx(k - 2);
+	    p = p + 1;
+	  end
 	end
       end
     end
@@ -203,12 +221,15 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
     m = m + 1;
     n = n + 1;
 
+    %% Progress printing...
     if( (i/N)*100 >= 10*print_count)
       fprintf("%.0f%%  ",(i/N)*100);
       print_count = print_count + 1;
     end
+
   end
   fprintf("Done.\n");
+
   %% Remove positions that were not occupied
   qidx = qidx(qidx ~= 0);
   ridx = ridx(ridx ~= 0);
@@ -223,65 +244,4 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   ti = ti(tidx);
   te = te(tedx);
 
-  %% Some debugging
-  %% if debug
-  %%   %% Reading sample takes a lot of time...
-  %%   if isempty(Fs)
-  %%     fprintf("Reading signal...");
-  %%     [sig,Fs,tm] = rdsamp(sig);
-  %%     fprintf("Done.\n");
-  %%   end
-  %%   plot(tm,sig(:,1));
-  %%   hold on;
-  %%   plot(tm(ann(ri)),sig(ann(ri),1),'or');
-  %%   plot(tm(ann(qi)),sig(ann(qi),1),'og');
-  %%   plot(tm(ann(ti)),sig(ann(ti),1),'om');
-  %%   plot(tm(ann(te)),sig(ann(te),1),'ok');
-  %%   hold off;
-  %%   drawnow();
-  %%   n_frames = 10;
-  %%   frame_delay = 3.0;% in sec
-  %%   rnd_frame = randi(floor(max(tm(ann(ri)))/30),1,n_frames);
-  %%   for l = rnd_frame
-  %%     xlim([(l-1)*30 l*30]);
-  %%     id = find((tm(ann(ri)) > (l-1)*30) & (tm(ann(ri)) < l*30));
-  %%     for p = 1:length(id)
-  %% 	text(tm(ann(ri(id(p)))),sig(ann(ri(id(p))),1),num2str(p));
-  %% 	text(tm(ann(qi(id(p)))),sig(ann(qi(id(p))),1),num2str(p));
-  %% 	text(tm(ann(ti(id(p)))),sig(ann(ti(id(p))),1),num2str(p));
-  %% 	text(tm(ann(te(id(p)))),sig(ann(te(id(p))),1),num2str(p));
-  %%     end
-  %%     title(['Random frame ' num2str(find(rnd_frame == l)) '/' num2str(n_frames)]);
-  %%     pause(frame_delay);
-  %%   end
-  %% end
-
-
-
-  %% VER 2
-  %% %% Remove unordered Q and R in the beginning
-  %% while (ri(1) < qi(1))
-  %%   ri = ri(2:end);
-  %% end
-  %% %% Form the difference
-  %% maxlen = min(length(qi),length(ri));
-  %% ri = ri(1:maxlen);
-  %% qi = qi(1:maxlen);
-  %% D = ri - qi;
-  %%
-  %% %% Form the diff of D
-  %% Dd = diff(D);
-  %%
-  %% %% Ignore places where Dd is restored in consecutive positions:
-  %% %% e.g. Dd = 0 0 -n n 0 0 these shifts indicate detection errors,
-  %% %% not missing annotations
-  %% Ipos = find(Dd > 0);
-  %% Ineg = find(Dd < 0);
-  %% J = find(diff(abs(Dd)) == 0);
-  %% J = [J J+1];%% we need two consecutive numbers to ignore
-  %% %% Drop unpaired R- and Q-waves
-  %% ri(setdiff(Ineg,J)) = [];
-  %% qi(setdiff(Ipos,J)) = [];
-
-  
 end
