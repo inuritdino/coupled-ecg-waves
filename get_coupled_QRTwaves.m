@@ -45,7 +45,7 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   %% Other VARARGIN options:
   %%
   %% ...,'MinInterruptBeats',Value,... -- min number of the
-  %%     interruption segment beats considered the interruption
+  %%     interruption segment beats considered an interruption
   %%     (default: 1)
   %%
   %%
@@ -91,11 +91,8 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   k = 1;% coupled counter
   p = 1;% interruption point counter
   print_count = 1;
-  %% Flags
-  %% Double Q/T-wave flags (2+ Q/T-waves determined for the same beat)
+  %% Double Q/T-wave flag (2+ Q/T-waves determined for the same beat)
   double_wave = false;
-  %% Continuous flag
-  continuous = true;
   %% Global upper limits for pointers
   N = length(ri);
   M = length(qi);
@@ -128,7 +125,6 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
       tidx(k) = m;
       tedx(k) = n;
       k = k + 1;
-      if ~continuous, continuous = true; end
     else%% Irregular beat...
       %%Move R-, T- and Q-pointers forward depending on conditions,
       %%until the coupled waves are found
@@ -205,10 +201,9 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
 	tedx(k) = n;
 	k = k + 1;
 	%% Get the interruption point
-	if ~double_wave & continuous
+	if ~double_wave
 	  if( (i - ridx(k-2)) >= min_interrupt_beats )
-	    continuous = false;
-	    iidx(p) = ridx(k - 2);% last regular/continuous beat
+	    iidx(p) = ridx(k - 2);% last continuous beat
 	    nuri(p) = i - ridx(k - 2);
 	    p = p + 1;
 	  end
