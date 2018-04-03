@@ -141,10 +141,9 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
 	  i = i + 1;
 	  inext = i+1;
 	  iprev = i-1;
-	end
 	%% Missed R-wave ==> move Q-pointer forward
-	if( tqi(j) < tri(i) -  al*(tri(i)-tri(iprev)) )
-	  if( i > 1 )
+	elseif( tqi(j) < tri(i) -  al*(tri(i)-tri(iprev)) )
+	  if( k > 1 )
 	    if( (tri(i) - tri(ridx(k-1))) > RR_low_trsh && ...
 		(tri(i) - tri(ridx(k-1))) < RR_up_trsh )
 	      %% Double-Q beat...
@@ -152,9 +151,8 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
 	    end
 	  end
 	  j = j + 1;
-	end
 	%% Missed T-wave ==> skip the R-wave (the heartbeat)
-	if( (tti(m) >= tri(inext)) && (tte(n) >= tri(inext)) )
+	elseif( (tti(m) >= tri(inext)) && (tte(n) >= tri(inext)) )
 	  i = i + 1;
 	  inext = i+1;
 	  iprev = i-1;
@@ -168,10 +166,9 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
 	  inext = i+1;
 	  iprev = i-1;
 	  n = n + 1;
-	end
 	%% Missed R-wave ==> move T-peak pointer forward
-	if( tti(m) <= tri(i) )
-	  if( i > 1 )
+	elseif( tti(m) <= tri(i) )
+	  if( k > 1 )
 	    if( (tri(i) - tri(ridx(k-1))) > RR_low_trsh && ...
 		(tri(i) - tri(ridx(k-1))) < RR_up_trsh )
 	      %% Double T-wave...
@@ -179,10 +176,9 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
 	    end
 	  end
 	  m = m + 1;
-	end
 	%% Missed R-wave ==> move T-end pointer forward
-	if( tte(n) <= tri(i) )
-	  if( i > 1 )
+	elseif( tte(n) <= tri(i) )
+	  if( k > 1 )
 	    if( (tri(i) - tri(ridx(k-1))) > RR_low_trsh && ...
 		(tri(i) - tri(ridx(k-1))) < RR_up_trsh )
 	      %% Double T-wave...
