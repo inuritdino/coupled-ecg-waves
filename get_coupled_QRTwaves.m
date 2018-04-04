@@ -51,6 +51,10 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   %% ...,'ReturnCells',... -- turns on the cell arrays in the return
   %%     of the function: each cell holds the wave indices
   %%     corresponding to each contiguous region of heart beats.
+  %%
+  %% ...,'MinWavesACell',Value,... -- sets the min number of waves per
+  %%     each contiguous region to return in cells (only when ReturnCells
+  %%     is true; default: 1).
     
   more off; %% for printing the progress...
 
@@ -65,6 +69,8 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   min_interrupt_beats = 1;
   %% Return cell arrays
   return_cell = false;
+  %% Min number of waves in a cell (only if return_cell=true)
+  min_waves_a_cell = 1;
 
   vi = 1;
   while( vi <= length(varargin))
@@ -79,6 +85,9 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
       vi = vi + 1;
     elseif( strcmpi('ReturnCells',varargin{vi}) )
       return_cell = true;
+    elseif( strcmpi('MinWavesACell',varargin{vi}) )
+      min_waves_a_cell = varargin{vi+1};
+      vi = vi + 1;
     else
       fprintf("Warning: VARARGIN argument is unknown.\n");
     end
@@ -262,15 +271,18 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
       else
 	I1 = find(ri == ii(n),1);
       end
-      ric{n} = ri(I0:I1);
-      qic{n} = ri(I0:I1);
-      tic{n} = ri(I0:I1);
-      tec{n} = ri(I0:I1);
+      if( (I1 - I0 + 1) >= min_waves_a_cell )
+	ric{n} = ri(I0:I1);
+	qic{n} = ri(I0:I1);
+	tic{n} = ri(I0:I1);
+	tec{n} = ri(I0:I1);
+      end
     end
-    ri = ric;
-    qi = qic;
-    ti = tic;
-    te = tec;
+    %% Form the output
+    ri = ric(~cellfun(@isempty,ric));
+    qi = qic(~cellfun(@isempty,qic));
+    ti = tic(~cellfun(@isempty,tic));
+    te = tec(~cellfun(@isempty,tec));
   end
   
 end
