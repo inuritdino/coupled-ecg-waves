@@ -32,7 +32,7 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   %% Q/T-waves for the single R-wave (annotation problem). Namely, no
   %% interruption occurs if the double wave is detected. The double
   %% waves are detected by using RR intervals subject to
-  %% thresholding. The thresholds are specified by the VARARGIN:
+  %% thresholds. The thresholds are specified by the VARARGIN:
   %%
   %% VARARGIN:
   %%
@@ -42,21 +42,28 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   %% get_coupled_QRTwaves(...,'RRup',Value,...) -- the upper boundary
   %% for RR intervals is set to Value (default: 1.5 sec).
   %%
+  %% Data processing note: 'RRlow' and 'RRup' options impose a
+  %% processing/cleaning step to the data and, hence, must be taken
+  %% with caution. All other procedures to find the coupled waves are
+  %% (semi)qualitative not requiring thresholds, except finding the
+  %% contiguous regions. Thus, contiguous region procedure can be
+  %% performed by external tools depending on application.
+  %%
   %% Other VARARGIN options:
   %%
   %% ...,'MinInterruptBeats',Value,... -- min number of the
   %%     interruption segment beats considered an interruption
   %%     (default: 1)
   %%
+  %% ...,'ReturnCells',... -- turns on the cell arrays in the return
+  %%     of the function: each cell holds the wave indices
+  %%     corresponding to each contiguous region of heart beats.
   %%
+  %% ...,'MinWavesACell',Value,... -- sets the min number of waves per
+  %%     each contiguous region to return in cells (only when ReturnCells
+  %%     is true; default: 1).
     
   more off; %% for printing the progress...
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  %% Find timings (in num of samples) of the annotations
-  tri = double(ann(ri))./fs;
-  tqi = double(ann(qi))./fs;
-  tti = double(ann(ti))./fs;
-  tte = double(ann(te))./fs;
 
   %% Thresholds for Q-waves alignment to R
   al = 0.3;
@@ -67,6 +74,11 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   %% Min number of the interruption region beats to be considered as
   %% the interruption
   min_interrupt_beats = 1;
+  %% Return cell arrays
+  return_cell = false;
+  %% Min number of waves in a cell (only if return_cell=true)
+  min_waves_a_cell = 1;
+
   vi = 1;
   while( vi <= length(varargin))
     if( strcmpi('RRlow',varargin{vi}) )
@@ -78,11 +90,24 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
     elseif( strcmpi('MinInterruptBeats',varargin{vi}) )
       min_interrupt_beats = varargin{vi+1};
       vi = vi + 1;
+    elseif( strcmpi('ReturnCells',varargin{vi}) )
+      return_cell = true;
+    elseif( strcmpi('MinWavesACell',varargin{vi}) )
+      min_waves_a_cell = varargin{vi+1};
+      vi = vi + 1;
     else
       fprintf("Warning: VARARGIN argument is unknown.\n");
     end
     vi = vi + 1;
   end
+
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %% Find timings of the annotations
+  tri = double(ann(ri))./fs;
+  tqi = double(ann(qi))./fs;
+  tti = double(ann(ti))./fs;
+  tte = double(ann(te))./fs;
+
   %% Pointers to be conditionally moved
   i = 1;% R pointer
   j = 1;% Q pointer
@@ -237,4 +262,35 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   ti = ti(tidx);
   te = te(tedx);
 
+  if return_cell
+    %% Sort the indices into a cell array
+    ric = cell(1,length(ii)+1);
+    qic = cell(1,length(ii)+1);
+    tic = cell(1,length(ii)+1);
+    tec = cell(1,length(ii)+1);
+    for n = 1:(length(ii)+1)
+      if n == 1
+	I0 = 1;
+      else
+	I0 = find(ri == ii(n-1),1) + 1;
+      end
+      if n == (length(ii)+1)
+	I1 = length(ri);
+      else
+	I1 = find(ri == ii(n),1);
+      end
+      if( (I1 - I0 + 1) >= min_waves_a_cell )
+	ric{n} = ri(I0:I1);
+	qic{n} = ri(I0:I1);
+	tic{n} = ri(I0:I1);
+	tec{n} = ri(I0:I1);
+      end
+    end
+    %% Form the output
+    ri = ric(~cellfun(@isempty,ric));
+    qi = qic(~cellfun(@isempty,qic));
+    ti = tic(~cellfun(@isempty,tic));
+    te = tec(~cellfun(@isempty,tec));
+  end
+  
 end
