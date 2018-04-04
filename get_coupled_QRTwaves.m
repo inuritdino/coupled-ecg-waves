@@ -32,7 +32,7 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   %% Q/T-waves for the single R-wave (annotation problem). Namely, no
   %% interruption occurs if the double wave is detected. The double
   %% waves are detected by using RR intervals subject to
-  %% thresholding. The thresholds are specified by the VARARGIN:
+  %% thresholds. The thresholds are specified by the VARARGIN:
   %%
   %% VARARGIN:
   %%
@@ -41,6 +41,13 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
   %%
   %% get_coupled_QRTwaves(...,'RRup',Value,...) -- the upper boundary
   %% for RR intervals is set to Value (default: 1.5 sec).
+  %%
+  %% Data processing note: 'RRlow' and 'RRup' options impose a
+  %% processing/cleaning step to the data and, hence, must be taken
+  %% with caution. All other procedures to find the coupled waves are
+  %% (semi)qualitative not requiring thresholds, except finding the
+  %% contiguous regions. Thus, contiguous region procedure can be
+  %% performed by external tools depending on application.
   %%
   %% Other VARARGIN options:
   %%
