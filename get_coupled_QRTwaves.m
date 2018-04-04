@@ -281,9 +281,9 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
       end
       if( (I1 - I0 + 1) >= min_waves_a_cell )
 	ric{n} = ri(I0:I1);
-	qic{n} = ri(I0:I1);
-	tic{n} = ri(I0:I1);
-	tec{n} = ri(I0:I1);
+	qic{n} = qi(I0:I1);
+	tic{n} = ti(I0:I1);
+	tec{n} = te(I0:I1);
       end
     end
     %% Form the output
