@@ -223,7 +223,7 @@ function [qi, ri, ti, te, ii, nuri] = get_coupled_QRTwaves(ann,fs,qi,ri,ti,te,va
 	tedx(k) = n;
 	k = k + 1;
 	%% Get the interruption point
-	if ~double_wave
+	if ~double_wave & (k > 2)
 	  if( (i - ridx(k-2)) >= min_interrupt_beats )
 	    iidx(p) = ridx(k - 2);% last continuous beat
 	    nuri(p) = i - ridx(k - 2);
