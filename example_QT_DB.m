@@ -1,6 +1,6 @@
-%%% Simple demo script
+%%% Simple demo script (NOTE: one must have WFDB Toolbox of PhysioNet)
 
-%% Prefix of the database
+%% Prefix of the PhysioNet database
 prefix = 'qtdb/';
 
 %% Take a sample and read the annotations (already prepared in the database)
